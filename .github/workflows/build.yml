@@ -1,0 +1,59 @@
+name: Build
+
+on:
+  push:
+    tags:
+    - '*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build agentsview frontend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Create GitHub release
+    env:
+      AGENTSVIEW_VERSION: '0.44.0'
+
+    steps:
+    - name: Checkout this repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Checkout agentsview repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+        repository: kenn-io/agentsview
+        ref: v${{ env.AGENTSVIEW_VERSION }}
+        path: agentsview
+
+    - name: Build frontend
+      run: |
+        cd agentsview/frontend
+        npm ci
+        npm run build
+
+    - name: Archive
+      run: |
+        DIST="agentsview-frontend-dist-${AGENTSVIEW_VERSION}.tar.gz"
+        cd agentsview/frontend
+        tar czf "../../${DIST}" dist
+        cd ../..
+        sha256sum "${DIST}" > "sha256sum.txt"
+
+
+    - name: Create Release
+      run: |
+        gh release create "v${AGENTSVIEW_VERSION}" \
+            --title "agentsview frontend dist v${AGENTSVIEW_VERSION}" \
+            --notes "https://github.com/kenn-io/agentsview/releases/tag/v${AGENTSVIEW_VERSION}" \
+            "agentsview-frontend-dist-${AGENTSVIEW_VERSION}.tar.gz" "sha256sum.txt"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
