@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: write # Create GitHub release
     env:
-      AGENTSVIEW_VERSION: '0.44.0'
+      AGENTSVIEW_VERSION: '0.45.0'
 
     steps:
     - name: Checkout this repository
